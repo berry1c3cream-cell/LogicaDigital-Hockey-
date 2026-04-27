@@ -1,0 +1,147 @@
+#include <LiquidCrystal.h>
+
+// LCD (puedes cambiar pines)
+LiquidCrystal lcd(7, 8, 9, 10, 11 , 12);
+
+// Pines
+int sensorIzq = 4;
+int sensorDer = 3;
+int buzzer = 2;
+//int ledIzq = 6;
+int ledGol = 6;
+int botonReset = 13;
+
+// Puntaje
+int puntosIzquierda = 0;
+int puntosDerecha = 0;
+
+// Control
+bool golDetectado = false;
+bool juegoTerminado = false;
+
+int limitePuntos = 5;
+
+void setup() {
+  pinMode(buzzer, OUTPUT);
+  pinMode(sensorIzq, INPUT_PULLUP);
+  pinMode(sensorDer, INPUT_PULLUP);
+  pinMode(ledGol, OUTPUT);
+  pinMode(botonReset, INPUT_PULLUP); // botón a GND
+
+  lcd.begin(16, 2);
+
+  lcd.print("Juego Hockey");
+  delay(1500);
+  lcd.clear();
+}
+
+void loop() {
+
+  // RESET (funciona siempre)
+  if (digitalRead(botonReset) == LOW) {
+    resetJuego();
+  }
+
+  // Si el juego ya terminó, no hacer nada más
+  if (juegoTerminado) {
+    return;
+  }
+
+  int estadoIzq = digitalRead(sensorIzq);
+  int estadoDer = digitalRead(sensorDer);
+
+  // Gol izquierda → punto derecha
+  if (estadoIzq == LOW && !golDetectado) {
+    puntosDerecha++;
+    gol("IZQ");
+  }
+  else if (estadoDer == LOW && !golDetectado) {
+    puntosIzquierda++;
+    gol("DER");
+  }
+
+  // Reset detección
+  if (estadoIzq == HIGH && estadoDer == HIGH) {
+    golDetectado = false;
+  }
+
+  //if (estadoIzq == HIGH) { //comentar cuando se agregue otro sensor
+    //golDetectado = false;
+  //}
+
+  mostrarMarcador();
+
+  // Revisar ganador
+  if (puntosIzquierda >= limitePuntos) {
+    mostrarGanador("IZQUIERDA");
+  }
+
+  if (puntosDerecha >= limitePuntos) {
+    mostrarGanador("DERECHA");
+  }
+
+  
+}
+
+// -------- FUNCIONES --------
+
+void gol(String lado) {
+  golDetectado = true;
+
+  lcd.clear();
+  lcd.setCursor(3, 0);
+  lcd.print("GOOOL!");
+
+  digitalWrite(ledGol, HIGH);
+  delay(700);
+  digitalWrite(ledGol, LOW);
+
+  delay(700);
+
+  digitalWrite(ledGol, LOW);
+
+  delay(700);
+  lcd.clear();
+}
+
+void mostrarMarcador() {
+  lcd.setCursor(0, 0);
+  lcd.print("Izq: ");
+  lcd.print(puntosIzquierda);
+  lcd.print("   ");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Der: ");
+  lcd.print(puntosDerecha);
+  lcd.print("   ");
+}
+
+void mostrarGanador(String equipo) {
+  juegoTerminado = true;
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("GANADOR:");
+  lcd.setCursor(0, 1);
+  lcd.print(equipo);
+
+  // Sonido de victoria
+  for (int i = 0; i < 3; i++) {
+    tone(buzzer, 1000, 150);
+    delay(200);
+  }
+}
+
+void resetJuego() {
+  puntosIzquierda = 0;
+  puntosDerecha = 0;
+  juegoTerminado = false;
+  golDetectado = false;
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Reiniciando...");
+  delay(1000);
+  lcd.clear();
+}
+
